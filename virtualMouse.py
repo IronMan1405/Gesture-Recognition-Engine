@@ -25,6 +25,8 @@ screen_w, screen_h = pyautogui.size()
 prev_x, prev_y = 0, 0
 smoothing = 2.5
 
+dragging = False
+
 def distance(p1, p2):
     return math.hypot(p1.x - p2.x, p1.y - p2.y)
 
@@ -71,9 +73,15 @@ while True:
 
             dist = math.hypot(index_tip.x - thumb_tip.x, index_tip.y - thumb_tip.y)
             if dist < 0.05:
-                pyautogui.click()
-                time.sleep(0.2)
-
+                if not dragging:
+                    # pyautogui.click()
+                    # time.sleep(0.2)
+                    pyautogui.mouseDown()
+                    dragging = True
+            else:
+                if dragging:
+                    pyautogui.mouseUp()
+                    dragging = False
 
     currentTime = time.time()
     fps = 1/(currentTime-prevTime)
