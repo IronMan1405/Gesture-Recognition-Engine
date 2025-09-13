@@ -5,12 +5,12 @@ import pyautogui
 import os
 import platform
 
-# camW, camH = 960, 540
-camW, camH = 640, 480
+camW, camH = 960, 540
+# camW, camH = 640, 480
 
 cap = cv2.VideoCapture(0)
-cap.set(3, camW)
-cap.set(4, camH)
+# cap.set(3, camW)
+# cap.set(4, camH)
 
 mp_hands = mp.solutions.hands
 hand = mp_hands.Hands()
@@ -19,16 +19,19 @@ mp_draw = mp.solutions.drawing_utils
 
 # map each gesture to an action
 gesture_actions = {
-    "Open Palm": "Unlock",
+    "Open Palm": "Take Screenshot",
     "Closed Fist": "Lock",
     "Swipe Left": "Scroll Left",
-    "Swipe Right": "Scroll Right"
+    "Swipe Right": "Scroll Right",
+    "Swipe Up": "Increase Volume",
+    "Swipe Down": "Decrease Volume"
 }
 
 prevTime = 0
 currentTime = 0
 
 prev_wrist_x = None
+prev_wrist_y = None
 
 last_gesture = ""
 gesture_time = ""
@@ -40,16 +43,17 @@ action_start_time = 0
 def performAction(action):
     system = platform.system()
 
-    if action == "Unlock":
-        print("Unlocking (showing desktop)")
+    if action == "Take Screenshot":
+        print("Taking Screenshot")
         if system == "Windows":
-            pyautogui.hotkey("win", "d")  # Show desktop
+            pyautogui.hotkey("win", "printscreen")  # take screenshot
         elif system == "Darwin":  # macOS
-            pyautogui.hotkey("f11")  # Mission Control
+            pyautogui.hotkey("command", "shift", "3")  # take screenshot
         else:
-            pyautogui.hotkey("ctrl", "alt", "d")  # Linux
+            pyautogui.hotkey("winleft", "printscreen")  # Linux
 
-    elif action == "Lock":
+    # elif action == "Lock":
+    if action == "Lock":
         print("Locking")
         if system == "Windows":
             pyautogui.hotkey("win", "l") 
@@ -60,7 +64,7 @@ def performAction(action):
             os.system("gnome-screensaver-command -l")  # Linux gnome command
 
     elif action == "Scroll Left":
-        print("⬅️ Scrolling Left")
+        print("Scrolling Left")
         # pyautogui.press("left")
         if system == "Windows":
             pyautogui.hotkey("win", "left")
@@ -70,7 +74,7 @@ def performAction(action):
             pyautogui.hotkey("ctrl", "alt", "left")
 
     elif action == "Scroll Right":
-        print("➡️ Scrolling Right")
+        print("Scrolling Right")
         if system == "Windows":
             pyautogui.hotkey("win", "right")
         elif system == "Darwin":
@@ -78,7 +82,23 @@ def performAction(action):
         else:
             pyautogui.hotkey("ctrl", "alt", "right")
 
-        pyautogui.press("right")
+    elif action == "Increase Volume":
+        print("increasing volume")
+        if system == "Windows":
+            pyautogui.hotkey("volumeup")
+        elif system == "Darwin":
+            os.system("osascript -e 'set volume output volume ((output volume of (get volume settings)) + 10)'")
+        else:
+            os.system("xdotool key XF86AudioRaiseVolume")
+
+    elif action == "Decrease Volume":
+        print("decreasing volume")
+        if system == "Windows":
+            pyautogui.hotkey("volumedown")
+        elif system == "Darwin":
+            os.system("osascript -e 'set volume output volume ((output volume of (get volume settings)) - 10)'")
+        else:
+            os.system("xdotool key XF86AudioLowerVolume")
 
     else:
         print(f"Unknown action: {action}")
@@ -106,39 +126,42 @@ def getFingerStates(handLandmarks):
 
     return fingers
 
-def detectGesture(handLandmarks, prev_x):
+def detectGesture(handLandmarks, prev_x, prev_y):
     fingers = getFingerStates(handLandmarks)
-
     gesture = "" # empty string to store the gesture
-
     count = sum(fingers)
 
     #palm and fist
     if count == 5: #all open
         gesture = "Open Palm"
-    
     elif count == 0: #all closed
         gesture = "Closed Fist"
-    
     else:
         gesture = f"{count} finger(s)"
 
 
     if gesture == "Open Palm":
         wrist_x = handLandmarks.landmark[0].x # get x coord of 0th landmark (wrist)
+        wrist_y = handLandmarks.landmark[0].y # get y coord of 0th landmark (wrist)
         
         if prev_x is not None:
             dx = wrist_x - prev_x # change in x coord of wrist/hand
             # print(dx)
-
             if dx > 0.015: #change is +ve i.e., hand moved/swiped right
                 gesture = "Swipe Right"
             elif dx < -0.015: # change is -ve i.e., hand moved left
                 gesture = "Swipe Left"
             
-        prev_x = wrist_x
+        if prev_y is not None:
+            dy = wrist_y - prev_y
+            if dy < -0.015: #actually opposite to the right left logic
+                gesture = "Swipe Up"
+            elif dy > 0.015:
+                gesture = "Swipe Down"
+
+        prev_x, prev_y = wrist_x, wrist_y
         
-    return gesture
+    return gesture, prev_x, prev_y
 
 while True:
     frame, img = cap.read()
@@ -151,9 +174,7 @@ while True:
         for hand_landmarks in results.multi_hand_landmarks: # for every hand landmark in the detected hand(s)
             mp_draw.draw_landmarks(img, hand_landmarks, mp_hands.HAND_CONNECTIONS) # draw the landmarks on the detected hand and join them, on the image/frame we display not the rgb one
 
-            gesture = detectGesture(hand_landmarks, prev_wrist_x)
-
-            prev_wrist_x = hand_landmarks.landmark[0].x
+            gesture, prev_wrist_x, prev_wrist_y = detectGesture(hand_landmarks, prev_wrist_x, prev_wrist_y)
 
             if gesture != "":
                 last_gesture = gesture

@@ -17,6 +17,7 @@ prevTime = 0
 currentTime = 0
 
 prev_wrist_x = None
+prev_wrist_y = None
 
 last_gesture = ""
 gesture_time = ""
@@ -44,7 +45,7 @@ def getFingerStates(handLandmarks):
 
     return fingers
 
-def detectGesture(handLandmarks, prev_x):
+def detectGesture(handLandmarks, prev_x, prev_y):
     fingers = getFingerStates(handLandmarks)
 
     gesture = "" # empty string to store the gesture
@@ -64,19 +65,26 @@ def detectGesture(handLandmarks, prev_x):
 
     if gesture == "Open Palm":
         wrist_x = handLandmarks.landmark[0].x # get x coord of 0th landmark (wrist)
+        wrist_y = handLandmarks.landmark[0].y
         
         if prev_x is not None:
             dx = wrist_x - prev_x # change in x coord of wrist/hand
-            print(dx)
-
+            # print(dx)
             if dx > 0.015: #change is +ve i.e., hand moved/swiped right
                 gesture = "Swipe Right"
             elif dx < -0.015: # change is -ve i.e., hand moved left
                 gesture = "Swipe Left"
             
-        prev_x = wrist_x
+        if prev_y is not None:
+            dy = wrist_y - prev_y
+            if dy < -0.015: #actually opposite to the right left logic
+                gesture = "Swipe Up"
+            elif dy > 0.015:
+                gesture = "Swipe Down"
+
+        prev_x, prev_y = wrist_x, wrist_y
         
-    return gesture
+    return gesture, prev_x, prev_y
 
 while True:
     frame, img = cap.read()
@@ -89,9 +97,7 @@ while True:
         for hand_landmarks in results.multi_hand_landmarks: # for every hand landmark in the detected hand(s)
             mp_draw.draw_landmarks(img, hand_landmarks, mp_hands.HAND_CONNECTIONS) # draw the landmarks on the detected hand and join them, on the image/frame we display not the rgb one
 
-            gesture = detectGesture(hand_landmarks, prev_wrist_x)
-
-            prev_wrist_x = hand_landmarks.landmark[0].x
+            gesture, prev_wrist_x, prev_wrist_y = detectGesture(hand_landmarks, prev_wrist_x, prev_wrist_y)
 
             if gesture != "":
                 last_gesture = gesture
