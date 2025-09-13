@@ -34,6 +34,9 @@ last_gesture = ""
 gesture_time = ""
 hold_time = 3.0
 
+pending_action = None
+action_start_time = 0
+
 def performAction(action):
     system = platform.system()
 
@@ -155,9 +158,18 @@ while True:
             if gesture != "":
                 last_gesture = gesture
                 gesture_time = time.time()
-                if gesture in gesture_actions:
-                    action = gesture_actions[gesture]
-                    performAction(action)
+
+                if gesture in gesture_actions and pending_action is None:
+                    pending_action = gesture_actions[gesture]
+                    action_start_time = time.time()
+
+                if pending_action:
+                    cv2.putText(img, f"Action: {pending_action}", (camW//2 - 100, camH - 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
+
+                    # Wait 2 seconds before performing
+                    if time.time() - action_start_time >= 2:
+                        performAction(pending_action)
+                        pending_action = None
 
             if time.time() - gesture_time <= hold_time:
                 cv2.putText(img, last_gesture, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
