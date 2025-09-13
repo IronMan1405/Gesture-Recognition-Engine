@@ -5,7 +5,8 @@ import pyautogui
 import os
 import platform
 
-camW, camH = 960, 540
+# camW, camH = 960, 540
+camW, camH = 640, 480
 
 cap = cv2.VideoCapture(0)
 cap.set(3, camW)
@@ -16,6 +17,7 @@ hand = mp_hands.Hands()
 
 mp_draw = mp.solutions.drawing_utils
 
+# map each gesture to an action
 gesture_actions = {
     "Open Palm": "Unlock",
     "Closed Fist": "Lock",
@@ -40,7 +42,7 @@ def performAction(action):
         if system == "Windows":
             pyautogui.hotkey("win", "d")  # Show desktop
         elif system == "Darwin":  # macOS
-            pyautogui.hotkey("command", "f3")  # Mission Control (desktop)
+            pyautogui.hotkey("f11")  # Mission Control
         else:
             pyautogui.hotkey("ctrl", "alt", "d")  # Linux
 
@@ -49,16 +51,30 @@ def performAction(action):
         if system == "Windows":
             pyautogui.hotkey("win", "l") 
         elif system == "Darwin": 
-            os.system('/System/Library/CoreServices/"Menu Extras"/User.menu/Contents/Resources/CGSession -suspend')
+            # os.system('/System/Library/CoreServices/"Menu Extras"/User.menu/Contents/Resources/CGSession -suspend')
+            os.system("pmset displaysleepnow")
         else:
             os.system("gnome-screensaver-command -l")  # Linux gnome command
 
     elif action == "Scroll Left":
         print("⬅️ Scrolling Left")
-        pyautogui.press("left")
+        # pyautogui.press("left")
+        if system == "Windows":
+            pyautogui.hotkey("win", "left")
+        elif system == "Darwin":  # macOS
+            pyautogui.hotkey("ctrl", "left")
+        else:  # Linux
+            pyautogui.hotkey("ctrl", "alt", "left")
 
     elif action == "Scroll Right":
         print("➡️ Scrolling Right")
+        if system == "Windows":
+            pyautogui.hotkey("win", "right")
+        elif system == "Darwin":
+            pyautogui.hotkey("ctrl", "right")
+        else:
+            pyautogui.hotkey("ctrl", "alt", "right")
+
         pyautogui.press("right")
 
     else:
@@ -110,7 +126,7 @@ def detectGesture(handLandmarks, prev_x):
         
         if prev_x is not None:
             dx = wrist_x - prev_x # change in x coord of wrist/hand
-            print(dx)
+            # print(dx)
 
             if dx > 0.015: #change is +ve i.e., hand moved/swiped right
                 gesture = "Swipe Right"
@@ -139,6 +155,9 @@ while True:
             if gesture != "":
                 last_gesture = gesture
                 gesture_time = time.time()
+                if gesture in gesture_actions:
+                    action = gesture_actions[gesture]
+                    performAction(action)
 
             if time.time() - gesture_time <= hold_time:
                 cv2.putText(img, last_gesture, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
