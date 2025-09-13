@@ -2,7 +2,11 @@ import cv2
 import mediapipe as mp
 import time
 
+camW, camH = 960, 540
+
 cap = cv2.VideoCapture(0)
+cap.set(3, camW)
+cap.set(4, camH)
 
 mp_hands = mp.solutions.hands
 hand = mp_hands.Hands()
@@ -13,6 +17,10 @@ prevTime = 0
 currentTime = 0
 
 prev_wrist_x = None
+
+last_gesture = ""
+gesture_time = ""
+hold_time = 3.0
 
 def getFingerStates(handLandmarks):
     fingers = []
@@ -41,22 +49,29 @@ def detectGesture(handLandmarks, prev_x):
 
     gesture = "" # empty string to store the gesture
 
+    count = sum(fingers)
+
     #palm and fist
-    if fingers == [1,1,1,1,1]: #all open
+    if count == 5: #all open
         gesture = "Open Palm"
     
-    if fingers == [0,0,0,0,0]: #all closed
+    elif count == 0: #all closed
         gesture = "Closed Fist"
     
     else:
-        wrist_x = handLandmarks.landmark[0].x # get x coord of 0th landmark (wrist)
+        gesture = f"{count} finger(s)"
 
+
+    if gesture == "Open Palm":
+        wrist_x = handLandmarks.landmark[0].x # get x coord of 0th landmark (wrist)
+        
         if prev_x is not None:
             dx = wrist_x - prev_x # change in x coord of wrist/hand
+            print(dx)
 
-            if dx > 0.025: #change is +ve i.e., hand moved/swiped right
+            if dx > 0.015: #change is +ve i.e., hand moved/swiped right
                 gesture = "Swipe Right"
-            elif dx < -0.025: # change is -ve i.e., hand moved left (set the threshold as 0.025)
+            elif dx < -0.015: # change is -ve i.e., hand moved left
                 gesture = "Swipe Left"
             
         prev_x = wrist_x
@@ -79,7 +94,11 @@ while True:
             prev_wrist_x = hand_landmarks.landmark[0].x
 
             if gesture != "":
-                cv2.putText(img, gesture, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+                last_gesture = gesture
+                gesture_time = time.time()
+
+            if time.time() - gesture_time <= hold_time:
+                cv2.putText(img, last_gesture, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
 
     currentTime = time.time()
     fps = 1/(currentTime-prevTime)

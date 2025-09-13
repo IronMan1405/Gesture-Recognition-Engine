@@ -2,7 +2,11 @@ import cv2
 import mediapipe as mp
 import time
 
+camW, camH = 640, 480
+
 cap = cv2.VideoCapture(0)
+# cap.set(3, camW)
+# cap.set(4, camH)
 
 mp_hands = mp.solutions.hands
 hand = mp_hands.Hands()
@@ -38,25 +42,29 @@ def getFingerStates(handLandmarks):
 
 def detectGesture(handLandmarks, prev_x):
     fingers = getFingerStates(handLandmarks)
-
     gesture = "" # empty string to store the gesture
 
+    count = sum(fingers)
+
     #palm and fist
-    if fingers == [1,1,1,1,1]: #all open
+    if count == 5: #all open
         gesture = "Open Palm"
     
-    if fingers == [0,0,0,0,0]: #all closed
+    elif count == 0: #all closed
         gesture = "Closed Fist"
     
     else:
+        gesture = f"{count} finger(s)"
+
         wrist_x = handLandmarks.landmark[0].x # get x coord of 0th landmark (wrist)
 
         if prev_x is not None:
             dx = wrist_x - prev_x # change in x coord of wrist/hand
+            print(dx)
 
             if dx > 0.025: #change is +ve i.e., hand moved/swiped right
                 gesture = "Swipe Right"
-            elif dx < -0.025: # change is -ve i.e., hand moved left (set the threshold as 0.025)
+            elif dx < -0.025: # change is -ve i.e., hand moved left
                 gesture = "Swipe Left"
             
         prev_x = wrist_x
