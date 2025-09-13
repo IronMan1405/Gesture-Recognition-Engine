@@ -3,6 +3,7 @@ import mediapipe as mp
 import time
 import pyautogui
 import threading
+import math
 
 camW, camH = 960, 540
 camW, camH = 640, 480
@@ -24,9 +25,12 @@ screen_w, screen_h = pyautogui.size()
 prev_x, prev_y = 0, 0
 smoothing = 2.5
 
-def getIndexCoords(handLandmarks):
-    index_x = handLandmarks.landmark[8].x
-    index_y = handLandmarks.landmark[8].y
+def distance(p1, p2):
+    return math.hypot(p1.x - p2.x, p1.y - p2.y)
+
+def getTipCoords(handLandmarks, id):
+    index_x = handLandmarks.landmark[id].x
+    index_y = handLandmarks.landmark[id].y
     return index_x, index_y
 
 def movePointer(x, y):
@@ -47,7 +51,7 @@ while True:
         for hand_landmarks in results.multi_hand_landmarks: # for every hand landmark in the detected hand(s)
             mp_draw.draw_landmarks(img, hand_landmarks, mp_hands.HAND_CONNECTIONS) # draw the landmarks on the detected hand and join them, on the image/frame we display not the rgb one)
 
-            x, y = getIndexCoords(hand_landmarks)
+            x, y = getTipCoords(hand_landmarks, 8) # getting index finger tip coords
 
             cx, cy = int(x*w), int(y*h)
 
@@ -61,6 +65,14 @@ while True:
             threading.Thread(target=movePointer, args=(smooth_x, smooth_y)).start()
 
             prev_x, prev_y = smooth_x, smooth_y
+
+            index_tip = hand_landmarks.landmark[8]
+            thumb_tip = hand_landmarks.landmark[4]
+
+            dist = math.hypot(index_tip.x - thumb_tip.x, index_tip.y - thumb_tip.y)
+            if dist < 0.05:
+                pyautogui.click()
+                time.sleep(0.2)
 
 
     currentTime = time.time()
