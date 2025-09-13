@@ -25,10 +25,7 @@ screen_w, screen_h = pyautogui.size()
 prev_x, prev_y = 0, 0
 smoothing = 2.5
 
-pinch_threshhold = 0.05
 dragging = False
-pinch_start_time = None
-pinch_start_pos = None
 
 def distance(p1, p2):
     return math.hypot(p1.x - p2.x, p1.y - p2.y)
@@ -69,48 +66,22 @@ while True:
 
             threading.Thread(target=movePointer, args=(smooth_x, smooth_y)).start()
 
+            prev_x, prev_y = smooth_x, smooth_y
 
             index_tip = hand_landmarks.landmark[8]
             thumb_tip = hand_landmarks.landmark[4]
-            dist = math.hypot(index_tip.x - thumb_tip.x, index_tip.y - thumb_tip.y)
 
-            if dist < pinch_threshhold:
-                if pinch_start_time is None:
-                    pinch_start_time = time.time()
-                    pinch_start_pos = (smooth_x, smooth_y)
-                
+            dist = math.hypot(index_tip.x - thumb_tip.x, index_tip.y - thumb_tip.y)
+            if dist < 0.05:
                 if not dragging:
                     # pyautogui.click()
                     # time.sleep(0.2)
-                    dx = abs(smooth_x - pinch_start_pos[0])
-                    dy = abs(smooth_y - pinch_start_pos[1])
-
-                    if dx > 20 or dy > 20:
-                        pyautogui.mouseDown()
-                        dragging = True
-
-                elif dragging:
-                    dx = smooth_x - prev_x
-                    dy = smooth_y - prev_y
-                    pyautogui.moveRel(dx, dy, duration=0)
-                else:
-                    pyautogui.moveTo(smooth_x, smooth_y)
+                    pyautogui.mouseDown()
+                    dragging = True
             else:
-                if pinch_start_time is not None:
-                    pinch_duration = time.time() - pinch_start_time
-                    dx = abs(smooth_x - pinch_start_pos[0])
-                    dy = abs(smooth_y - pinch_start_pos[1])
-
-                    if not dragging and pinch_duration < 0.3 and dx < 20 and dy < 20:
-                        pyautogui.click()  # quick pinch = click
-                    elif dragging:
-                        pyautogui.mouseUp()
-
-                dragging = False
-                pinch_start_time = None
-                pinch_start_pos = None
-
-            prev_x, prev_y = smooth_x, smooth_y
+                if dragging:
+                    pyautogui.mouseUp()
+                    dragging = False
 
     currentTime = time.time()
     fps = 1/(currentTime-prevTime)
