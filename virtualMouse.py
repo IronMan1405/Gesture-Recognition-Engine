@@ -6,7 +6,7 @@ import threading
 import math
 
 camW, camH = 960, 540
-camW, camH = 640, 480
+# camW, camH = 640, 480
 
 cap = cv2.VideoCapture(0)
 cap.set(3, camW)
@@ -18,17 +18,18 @@ hand = mp_hands.Hands()
 mp_draw = mp.solutions.drawing_utils
 
 prevTime = 0
-currentTime = 0
-
 screen_w, screen_h = pyautogui.size()
 
 prev_x, prev_y = 0, 0
 smoothing = 2.5
 
-pinch_threshhold = 0.05
+pinch_threshhold = 0.025
 dragging = False
 pinch_start_time = None
 pinch_start_pos = None
+
+target_pos = None
+worker_running = True
 
 def distance(p1, p2):
     return math.hypot(p1.x - p2.x, p1.y - p2.y)
@@ -40,6 +41,19 @@ def getTipCoords(handLandmarks, id):
 
 def movePointer(x, y):
     pyautogui.moveTo(x, y)
+
+def mouseLogic():
+    global target_pos
+    last_pos = None
+
+    while worker_running:
+        if target_pos:
+            if last_pos is None or abs(target_pos[0] - last_pos[0]) > 2 or abs(target_pos[1] - last_pos[1]) > 2:
+                pyautogui.moveTo(*target_pos)
+                last_pos = target_pos
+        time.sleep(0.03)
+
+# threading.Thread(target=mouseLogic, daemon=True).start()
 
 while True:
     frame, img = cap.read()
@@ -56,19 +70,24 @@ while True:
         for hand_landmarks in results.multi_hand_landmarks: # for every hand landmark in the detected hand(s)
             mp_draw.draw_landmarks(img, hand_landmarks, mp_hands.HAND_CONNECTIONS) # draw the landmarks on the detected hand and join them, on the image/frame we display not the rgb one)
 
-            x, y = getTipCoords(hand_landmarks, 8) # getting index finger tip coords
+            x_i, y_i = getTipCoords(hand_landmarks, 8) # getting index finger tip coords
+            x_t, y_t = getTipCoords(hand_landmarks, 4)
 
-            cx, cy = int(x*w), int(y*h)
+            cx_i, cy_i = int(x_i*w), int(y_i*h)
+            cx_t, cy_t = int(x_t*w), int(y_t*h)
 
-            cv2.circle(img, (cx, cy), 10, (255, 0, 255), cv2.FILLED)
 
-            pointer_x, pointer_y = int(x * screen_w), int(y * screen_h)
+            cv2.circle(img, (cx_i, cy_i), 10, (255, 0, 255), cv2.FILLED)
+            cv2.circle(img, (cx_t, cy_t), 10, (255, 0, 255), cv2.FILLED)
 
+            pointer_x, pointer_y = int(x_i * screen_w), int(y_i * screen_h)
             smooth_x = prev_x + (pointer_x - prev_x) / smoothing
             smooth_y = prev_y + (pointer_y - prev_y) / smoothing
 
-            threading.Thread(target=movePointer, args=(smooth_x, smooth_y)).start()
-
+            # threading.Thread(target=movePointer, args=(smooth_x, smooth_y)).start()
+            # pyautogui.moveTo(smooth_x, smooth_y)
+            target_pos = (smooth_x, smooth_y)
+            threading.Thread(target=mouseLogic, daemon=True).start()
 
             index_tip = hand_landmarks.landmark[8]
             thumb_tip = hand_landmarks.landmark[4]
@@ -89,12 +108,7 @@ while True:
                         pyautogui.mouseDown()
                         dragging = True
 
-                elif dragging:
-                    dx = smooth_x - prev_x
-                    dy = smooth_y - prev_y
-                    pyautogui.moveRel(dx, dy, duration=0)
-                else:
-                    pyautogui.moveTo(smooth_x, smooth_y)
+                # pyautogui.moveTo(smooth_x, smooth_y)
             else:
                 if pinch_start_time is not None:
                     pinch_duration = time.time() - pinch_start_time
@@ -125,5 +139,6 @@ while True:
     if key == ord("q"):
         break
 
+worker_running = False
 cap.release()
 cv2.destroyAllWindows()
