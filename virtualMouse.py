@@ -23,10 +23,10 @@ prevTime = 0 # for fps calculation
 screen_w, screen_h = pyautogui.size() # get screen width and height for mapping cursor coords
 
 prev_x, prev_y = 0, 0 #previous cursor coords for smoothing (updated later accordingly)
-smoothing = 2.5 # higher means smoother but more lag
+smoothing = 2 # higher means smoother but more lag
 
 # pinch and drag gesture flags
-pinch_threshhold = 0.04
+pinch_threshhold = 0.05
 dragging = False
 pinch_start_time = None
 pinch_start_pos = None
@@ -93,6 +93,14 @@ def getFingerStates(handLandmarks):
             fingers.append(0)
 
     return fingers
+
+def doubleclick():
+    pyautogui.click()
+    time.sleep(0.5)
+    pyautogui.click()
+
+def rightclick():
+    pyautogui.rightClick()
 
 # start the mouse movement thread
 threading.Thread(target=mouseLogic, daemon=True).start()
@@ -179,14 +187,16 @@ while True:
                 if fingers == [0,0,0,0,0]: # all closed = closed fist -> right click
                     # current_time = time.time()
                     # if current_time - last_right_click > right_click_cooldown:
-                    pyautogui.rightClick()
+                    #     pyautogui.rightClick()
                         # last_right_click = current_time
+                    threading.Thread(target=rightclick, daemon=True).start()
                     action = "right click"
                 elif fingers == [0,1,1,0,0]: # index and middle finger open (victory sign) -> double click
                     # if time.time() - last_doubleclick_time > doubleclick_cooldown:
-                    pyautogui.doubleClick()
+                    #     pyautogui.doubleClick()
+                    #     last_doubleclick_time = time.time()
+                    threading.Thread(target=doubleclick, daemon=True).start()
                     action = "double click"
-                        # last_doubleclick_time = time.time()
             
             #updating cursor's previous smooth coords 
             prev_x, prev_y = smooth_x, smooth_y
