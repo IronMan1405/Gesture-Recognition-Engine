@@ -26,7 +26,7 @@ prev_x, prev_y = 0, 0 #previous cursor coords for smoothing (updated later accor
 smoothing = 2.5 # higher means smoother but more lag
 
 # pinch and drag gesture flags
-pinch_threshhold = 0.025 
+pinch_threshhold = 0.04
 dragging = False
 pinch_start_time = None
 pinch_start_pos = None
@@ -38,11 +38,15 @@ worker_running = True # to stop mouse logic thread
 last_right_click = 0
 right_click_cooldown = 0.3 # in sec
 
+last_doubleclick_time = 0
+doubleclick_cooldown = 1
 
 lock = threading.Lock()
 
 #to display action on camera feed
 action = "idle"
+
+prev_fingers = None
 
 #get normalized coords for a landmark
 def getTipCoords(handLandmarks, id):
@@ -72,7 +76,7 @@ def getFingerStates(handLandmarks):
     fingers = []
 
     # index 4 - thumb tip, index 3 - thumb joint; checking x coord of tip of thumb relative to the joint to determine closed or open
-    if handLandmarks.landmark[4].x > handLandmarks.landmark[3].x: 
+    if handLandmarks.landmark[4].x < handLandmarks.landmark[3].x: #opposite of gesture mapping code as we are flipping the feed 
         fingers.append(1) #open
     else:
         fingers.append(0) #close
@@ -120,8 +124,8 @@ while True:
             cx_t, cy_t = int(x_t*w), int(y_t*h)
 
             # draw the circles on index and thumb tips
-            cv2.circle(img, (cx_i, cy_i), 10, (255, 0, 255), cv2.FILLED)
-            cv2.circle(img, (cx_t, cy_t), 10, (255, 0, 255), cv2.FILLED)
+            cv2.circle(img, (cx_i, cy_i), 7, (255, 0, 255), cv2.FILLED)
+            cv2.circle(img, (cx_t, cy_t), 7, (255, 0, 255), cv2.FILLED)
 
             #mapping index tip to screen to apply smoothing
             pointer_x, pointer_y = int(x_i * screen_w), int(y_i * screen_h)
@@ -171,12 +175,18 @@ while True:
 
             # detecting closed fist for right click
             fingers = getFingerStates(hand_landmarks)
-            if fingers == [0,0,0,0,0]:
-                current_time = time.time()
-                if current_time - last_right_click > right_click_cooldown:
+            if fingers != prev_fingers: # only act when gesture changes
+                if fingers == [0,0,0,0,0]: # all closed = closed fist -> right click
+                    # current_time = time.time()
+                    # if current_time - last_right_click > right_click_cooldown:
                     pyautogui.rightClick()
-                    last_right_click = current_time
+                        # last_right_click = current_time
                     action = "right click"
+                elif fingers == [0,1,1,0,0]: # index and middle finger open (victory sign) -> double click
+                    # if time.time() - last_doubleclick_time > doubleclick_cooldown:
+                    pyautogui.doubleClick()
+                    action = "double click"
+                        # last_doubleclick_time = time.time()
             
             #updating cursor's previous smooth coords 
             prev_x, prev_y = smooth_x, smooth_y
@@ -192,15 +202,20 @@ while True:
     cv2.putText(img, str(int(fps)), (10, 70), cv2.FONT_HERSHEY_COMPLEX, 3, (255, 0, 0), 3  )
     cv2.putText(img, f"Action: {action}", (10, 120), cv2.FONT_HERSHEY_DUPLEX, 2, (0, 255, 0), 2)
 
-    #render/show the camera feed
-    cv2.imshow("Capture", img)
+    # if results.multi_hand_landmarks:
+    #     if hand_landmarks in results.multi_hand_landmarks:
+    #         fingers = getFingerStates(hand_landmarks)
+    #         cv2.putText(img, f"fingers = {fingers}", (10, 170), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 2)
 
     end = time.time() # get loop end time for latency
     latency = (end - start) #total time for one loop iteration = latency
-    print(f"latency: {latency:.3f} s")
+    cv2.putText(img, f"latency: {latency:.2f}s", (10, 170), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 2)
+    # print(f"latency: {latency:.3f} s")
+
+    #render/show the camera feed
+    cv2.imshow("Capture", img)
     
     key = cv2.waitKey(1) & 0xFF
-
     if key == ord("q"):
         worker_running = False
         break
