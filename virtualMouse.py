@@ -95,9 +95,11 @@ def getFingerStates(handLandmarks):
     return fingers
 
 def doubleclick():
-    pyautogui.click()
-    time.sleep(0.5)
-    pyautogui.click()
+#     pyautogui.click()
+#     time.sleep(0.75)
+#     pyautogui.click()
+
+    pyautogui.doubleClick()
 
 def rightclick():
     pyautogui.rightClick()

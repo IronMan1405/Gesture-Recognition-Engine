@@ -67,20 +67,26 @@ def performAction(action):
         print("Scrolling Left")
         # pyautogui.press("left")
         if system == "Windows":
-            pyautogui.hotkey("win", "left")
+            # pyautogui.hotkey("win", "left")
+            pyautogui.hotkey("left")
         elif system == "Darwin":  # macOS
-            pyautogui.hotkey("ctrl", "left")
+            # pyautogui.hotkey("ctrl", "left")
+            pyautogui.hotkey("left")
         else:  # Linux
-            pyautogui.hotkey("ctrl", "alt", "left")
+            # pyautogui.hotkey("ctrl", "alt", "left")
+            pyautogui.hotkey("left")
 
     elif action == "Scroll Right":
         print("Scrolling Right")
         if system == "Windows":
-            pyautogui.hotkey("win", "right")
+            # pyautogui.hotkey("win", "right")
+            pyautogui.hotkey("left")
         elif system == "Darwin":
-            pyautogui.hotkey("ctrl", "right")
+            # pyautogui.hotkey("ctrl", "right")
+            pyautogui.hotkey("left")
         else:
-            pyautogui.hotkey("ctrl", "alt", "right")
+            # pyautogui.hotkey("ctrl", "alt", "right")
+            pyautogui.hotkey("left")
 
     elif action == "Increase Volume":
         print("increasing volume")
