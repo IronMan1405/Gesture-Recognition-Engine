@@ -65,15 +65,11 @@ def performAction(action):
 
     elif action == "Scroll Left":
         print("Scrolling Left")
-        # pyautogui.press("left")
         if system == "Windows":
-            # pyautogui.hotkey("win", "left")
             pyautogui.hotkey("left")
         elif system == "Darwin":  # macOS
-            # pyautogui.hotkey("ctrl", "left")
             pyautogui.hotkey("left")
         else:  # Linux
-            # pyautogui.hotkey("ctrl", "alt", "left")
             pyautogui.hotkey("left")
 
     elif action == "Scroll Right":
@@ -82,10 +78,8 @@ def performAction(action):
             # pyautogui.hotkey("win", "right")
             pyautogui.hotkey("left")
         elif system == "Darwin":
-            # pyautogui.hotkey("ctrl", "right")
             pyautogui.hotkey("left")
         else:
-            # pyautogui.hotkey("ctrl", "alt", "right")
             pyautogui.hotkey("left")
 
     elif action == "Increase Volume":
@@ -179,7 +173,6 @@ while True:
     if results.multi_hand_landmarks: # if hand is detected by cam
         for hand_landmarks in results.multi_hand_landmarks: # for every hand landmark in the detected hand(s)
             mp_draw.draw_landmarks(img, hand_landmarks, mp_hands.HAND_CONNECTIONS) # draw the landmarks on the detected hand and join them, on the image/frame we display not the rgb one
-
             # print(getFingerStates(hand_landmarks))
 
             gesture, prev_wrist_x, prev_wrist_y = detectGesture(hand_landmarks, prev_wrist_x, prev_wrist_y)
@@ -194,7 +187,6 @@ while True:
 
                 if pending_action:
                     cv2.putText(img, f"Action: {pending_action}", (camW//2 - 100, camH - 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
-
                     # Wait 2 seconds before performing
                     if time.time() - action_start_time >= 2:
                         performAction(pending_action)
@@ -208,7 +200,6 @@ while True:
     prevTime = currentTime 
 
     cv2.putText(img, str(int(fps)), (10, 70), cv2.FONT_HERSHEY_COMPLEX, 3, (255, 0, 0), 3  )
-
     cv2.imshow("Capture", img)
     
     key = cv2.waitKey(1) & 0xFF
